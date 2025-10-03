@@ -1,0 +1,32 @@
+package com.mapacheBigoton.api.cliente;
+
+
+import com.mapacheBigoton.api.cita.Cita;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+@Entity
+@Table(name = "clientes")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Cliente {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer idCliente;
+
+    @Column(nullable = false, length = 200)
+    private String nombre;
+
+    @Column(nullable = false, length = 45)
+    private String telefono;
+
+    // Relación con Cita
+    @OneToMany(mappedBy = "cliente")
+    @JsonIgnore
+    private List<Cita> citas;
+}
+

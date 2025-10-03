@@ -5,9 +5,9 @@ import {Toast} from 'primereact/toast';
 import {Toolbar} from 'primereact/toolbar';
 import {Dialog} from 'primereact/dialog';
 import {classNames} from "primereact/utils";
-import BarberoService from "../Services/BarberoService.tsx";
-import ServicioService from "../Services/ServicioService.tsx";
-import SucursalService from "../Services/SucursalService.tsx";
+import BarberoService from "../services/BarberoService";
+import ServicioService from "../services/ServicioService";
+import SucursalService from "../services/SucursalService";
 import { Card } from 'primereact/card';
 import { PanelMenu } from 'primereact/panelmenu';
 import type { MenuItem } from 'primereact/menuitem';
@@ -15,11 +15,18 @@ import { Avatar } from 'primereact/avatar';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputNumber } from 'primereact/inputnumber';
+import { Dropdown } from 'primereact/dropdown';
 
+
+interface Sucursal {
+    idSucursal: number | null;
+    direccion: string;
+}
 
 interface Barbero {
     idBarbero: number | null;
     nombre: string;
+    sucursal: Sucursal | null;
 }
 
 interface Servicio {
@@ -28,10 +35,6 @@ interface Servicio {
     costo: number;
 }
 
-interface Sucursal {
-    idSucursal: number | null;
-    direccion: string;
-}
 
 const buttonStyles = {
     add: {
@@ -112,7 +115,8 @@ const handleButtonHover = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, b
 export default function CRUDBarberoComponent() {
     const emptyBarbero: Barbero = {
         idBarbero: null,
-        nombre: ''
+        nombre: '',
+        sucursal: null
     };
 
     const emptyServicio: Servicio = {
@@ -240,10 +244,16 @@ export default function CRUDBarberoComponent() {
 
     const saveBarbero = async () => {
         setSubmitted(true);
-        if (barbero.nombre.trim()) {
+        if (barbero.nombre.trim() && barbero.sucursal?.idSucursal) {
             try {
+                const payload = {
+                    idBarbero: barbero.idBarbero,
+                    nombre: barbero.nombre,
+                    sucursal: { idSucursal: barbero.sucursal.idSucursal }
+                };
+
                 if (barbero.idBarbero) {
-                    await BarberoService.update(barbero.idBarbero, barbero);
+                    await BarberoService.update(barbero.idBarbero, payload);
                     toast.current?.show({
                         severity: 'success',
                         summary: 'Éxito',
@@ -251,7 +261,7 @@ export default function CRUDBarberoComponent() {
                         life: 3000
                     });
                 } else {
-                    await BarberoService.create(barbero);
+                    await BarberoService.create(payload);
                     toast.current?.show({
                         severity: 'success',
                         summary: 'Éxito',
@@ -309,12 +319,12 @@ export default function CRUDBarberoComponent() {
         }
     };
 
-    const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = (e.target && e.target.value)||"";
-        const _barbero = {...barbero};
-        _barbero.nombre = val;
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
+        const val = (e.target && e.target.value) || '';
+        const _barbero = { ...barbero, [name]: val };
         setBarbero(_barbero);
     };
+
 
     const openNewServicio = () => {
         setServicio(emptyServicio);
@@ -961,6 +971,7 @@ export default function CRUDBarberoComponent() {
                                                 }}>
                                                     {barbero.nombre}
                                                 </span>
+                                                <small className="text-500">{barbero.sucursal?.direccion}</small>
                                             </div>
                                         }
                                         className={(deleteMode || editMode) ? 'cursor-pointer text-center' : 'cursor-pointer text-center'}
@@ -1148,7 +1159,7 @@ export default function CRUDBarberoComponent() {
                         <InputText
                             id="nombre"
                             value={barbero.nombre}
-                            onChange={(e) => onInputChange(e)}
+                            onChange={(e) => onInputChange(e, 'nombre')}
                             required
                             autoFocus
                             className={classNames({'p-invalid':submitted && !barbero.nombre})}
@@ -1161,6 +1172,30 @@ export default function CRUDBarberoComponent() {
                         {submitted && !barbero.nombre &&
                             <small className="p-error">El nombre es requerido.</small>
                         }
+                    </div>
+                    <div className="field">
+                        <label htmlFor="sucursal" className="font-bold" style={{
+                            color: '#333',
+                            marginBottom: '0.5rem',
+                            display: 'block'
+                        }}>
+                            Sucursal
+                        </label>
+                        <Dropdown
+                            id="sucursal"
+                            value={barbero.sucursal?.idSucursal}
+                            options={sucursales}
+                            onChange={(e) => {
+                                const selected = sucursales.find(s => s.idSucursal === e.value);
+                                setBarbero({...barbero, sucursal: selected || null});
+                            }}
+                            optionLabel="direccion"
+                            optionValue="idSucursal"
+                            placeholder="Seleccione una sucursal"
+                            className={classNames({ 'p-invalid': submitted && !barbero.sucursal })}
+                            style={{ borderRadius: '8px' }}
+                        />
+                        {submitted && !barbero.sucursal && <small className="p-error">La sucursal es requerida.</small>}
                     </div>
                 </Dialog>
 
@@ -1369,3 +1404,4 @@ export default function CRUDBarberoComponent() {
         </div>
     );
 }
+

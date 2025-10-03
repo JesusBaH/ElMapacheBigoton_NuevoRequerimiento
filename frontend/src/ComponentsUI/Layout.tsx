@@ -15,10 +15,11 @@ import { classNames } from "primereact/utils";
 import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
-import BarberoService from '../Services/BarberoService.tsx';
-import ServicioService from '../Services/ServicioService.tsx';
-import ClienteService from '../Services/ClienteService.tsx';
-import CitaService from '../Services/CitaService.tsx';
+import BarberoService from '../Services/BarberoService';
+import ServicioService from '../Services/ServicioService';
+import ClienteService from '../Services/ClienteService';
+import CitaService from '../Services/CitaService';
+import SucursalService from '../Services/SucursalService';
 
 interface Barbero {
     idBarbero: number | null;
@@ -29,6 +30,11 @@ interface Servicio {
     idServicio: number | null;
     descripcion: string;
     costo: number;
+}
+
+interface Sucursal {
+    idSucursal: number | null;
+    direccion: string;
 }
 
 interface Cliente {
@@ -64,6 +70,10 @@ interface Cita {
         descripcion: string;
         costo: number;
     };
+    sucursal: {
+        idSucursal: number;
+        direccion: string;
+    };
 }
 
 interface CalendarDate {
@@ -78,6 +88,10 @@ export default function SidebarDemo() {
     const toast = useRef<Toast>(null);
     const [date, setDate] = useState<Nullable<Date>>(null);
     const [selectedDate, setSelectedDate] = useState<Nullable<Date>>(null);
+
+    const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+    const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null);
+
     const [barberos, setBarberos] = useState<FormattedBarbero[]>([]);
     const [servicios, setServicios] = useState<FormattedServicio[]>([]);
     const [selectedBarbero, setSelectedBarbero] = useState<FormattedBarbero | null>(null);
@@ -91,7 +105,10 @@ export default function SidebarDemo() {
     const [fechasConCitas, setFechasConCitas] = useState<string[]>([]);
     const [showEditDialog, setShowEditDialog] = useState<boolean>(false);
     const [citaAEditar, setCitaAEditar] = useState<Cita | null>(null);
+
+    const [editBarberos, setEditBarberos] = useState<FormattedBarbero[]>([]);
     const [editData, setEditData] = useState({
+        sucursal: null as Sucursal | null,
         barbero: null as FormattedBarbero | null,
         servicio: null as FormattedServicio | null,
         cliente: { nombre: '', telefono: '' },
@@ -101,7 +118,7 @@ export default function SidebarDemo() {
 
     const items: MenuItem[] = [
         { label: 'Agenda', icon: 'pi pi-calendar' },
-        { label: 'Cátalogos', icon: 'pi pi-pen-to-square' , url: '/catalogos' },
+        { label: 'Catálogos', icon: 'pi pi-pen-to-square' , url: '/catalogos' },
     ];
 
     const loadCitas = async () => {
@@ -123,21 +140,17 @@ export default function SidebarDemo() {
     };
 
     useEffect(() => {
-        const loadBarberosAndServicios = async () => {
+        const loadInitialData = async () => {
             try {
-                const [barberosResponse, serviciosResponse] = await Promise.all([
-                    BarberoService.findAll(),
+                const [sucursalesResponse, serviciosResponse] = await Promise.all([
+                    SucursalService.findAll(),
                     ServicioService.findAll()
                 ]);
 
-                if (Array.isArray(barberosResponse.data)) {
-                    const barberosFormateados = barberosResponse.data.map((b: Barbero) => ({
-                        idBarbero: b.idBarbero,
-                        nombreBarbero: b.nombre
-                    }));
-                    setBarberos(barberosFormateados);
+                if (Array.isArray(sucursalesResponse.data)) {
+                    setSucursales(sucursalesResponse.data);
                 } else {
-                    setBarberos([]);
+                    setSucursales([]);
                 }
 
                 if (Array.isArray(serviciosResponse.data)) {
@@ -152,7 +165,7 @@ export default function SidebarDemo() {
 
             } catch (error) {
                 console.error("Error al cargar los datos iniciales:", error);
-                setBarberos([]);
+                setSucursales([]);
                 setServicios([]);
                 toast.current?.show({
                     severity: 'error',
@@ -163,13 +176,63 @@ export default function SidebarDemo() {
             }
         };
 
-        loadBarberosAndServicios();
+        loadInitialData();
         loadCitas();
     }, []);
 
+    useEffect(() => {
+        const loadBarberosPorSucursal = async () => {
+            if (selectedSucursal && selectedSucursal.idSucursal) {
+                try {
+                    // This assumes a BarberoService.findBySucursalId method exists on your backend
+                    const response = await BarberoService.findBySucursalId(selectedSucursal.idSucursal);
+                    if (Array.isArray(response.data)) {
+                        const barberosFormateados = response.data.map((b: Barbero) => ({
+                            idBarbero: b.idBarbero,
+                            nombreBarbero: b.nombre
+                        }));
+                        setBarberos(barberosFormateados);
+                    } else {
+                        setBarberos([]);
+                    }
+                } catch (error) {
+                    console.error("Error al cargar los barberos por sucursal:", error);
+                    setBarberos([]);
+                }
+            } else {
+                setBarberos([]);
+            }
+        };
+
+        loadBarberosPorSucursal();
+    }, [selectedSucursal]);
+
+    useEffect(() => {
+        const loadBarberosParaEditar = async () => {
+            if (showEditDialog && editData.sucursal && editData.sucursal.idSucursal) {
+                try {
+                    const response = await BarberoService.findBySucursalId(editData.sucursal.idSucursal);
+                    if (Array.isArray(response.data)) {
+                        const barberosFormateados = response.data.map((b: Barbero) => ({
+                            idBarbero: b.idBarbero,
+                            nombreBarbero: b.nombre
+                        }));
+                        setEditBarberos(barberosFormateados);
+                    } else {
+                        setEditBarberos([]);
+                    }
+                } catch (error) {
+                    console.error("Error al cargar barberos para editar:", error);
+                    setEditBarberos([]);
+                }
+            }
+        };
+        loadBarberosParaEditar();
+    }, [showEditDialog, editData.sucursal]);
+
     const handleAgendarCita = async () => {
         setSubmitted(true);
-        if (!selectedBarbero || !selectedServicio || !cliente.nombre.trim() || !cliente.telefono.trim() || !selectedDate || !hora) {
+        if (!selectedSucursal || !selectedBarbero || !selectedServicio || !cliente.nombre.trim() || !cliente.telefono.trim() || !selectedDate || !hora) {
             toast.current?.show({
                 severity: 'error',
                 summary: 'Error',
@@ -188,6 +251,7 @@ export default function SidebarDemo() {
             const idCliente = clientResponse.data.idCliente;
 
             const nuevaCita = {
+                sucursal: { idSucursal: selectedSucursal.idSucursal },
                 barbero: { idBarbero: selectedBarbero.idBarbero },
                 servicio: { idServicio: selectedServicio.idServicio },
                 cliente: { idCliente: idCliente },
@@ -204,6 +268,7 @@ export default function SidebarDemo() {
                 life: 3000
             });
 
+            setSelectedSucursal(null);
             setSelectedBarbero(null);
             setSelectedServicio(null);
             setCliente({ nombre: '', telefono: '' });
@@ -227,16 +292,18 @@ export default function SidebarDemo() {
     const handleEditarCita = (cita: Cita) => {
         setCitaAEditar(cita);
 
-        const barberoFormateado = barberos.find(b => b.idBarbero === cita.barbero.idBarbero);
+        const sucursalSeleccionada = sucursales.find(s => s.idSucursal === cita.sucursal.idSucursal);
+        const barberoFormateado = { idBarbero: cita.barbero.idBarbero, nombreBarbero: cita.barbero.nombre };
         const servicioFormateado = servicios.find(s => s.idServicio === cita.servicio.idServicio);
 
-        const fechaCita = new Date(cita.fecha + 'T00:00:00'); // Ajuste para evitar problemas de zona horaria
+        const fechaCita = new Date(cita.fecha + 'T00:00:00');
 
         const [horas, minutos] = cita.hora.split(':');
         const horaCita = new Date();
         horaCita.setHours(parseInt(horas), parseInt(minutos), 0, 0);
 
         setEditData({
+            sucursal: sucursalSeleccionada || null,
             barbero: barberoFormateado || null,
             servicio: servicioFormateado || null,
             cliente: {
@@ -251,7 +318,7 @@ export default function SidebarDemo() {
     };
 
     const handleActualizarCita = async () => {
-        if (!citaAEditar || !editData.barbero || !editData.servicio ||
+        if (!citaAEditar || !editData.sucursal || !editData.barbero || !editData.servicio ||
             !editData.cliente.nombre.trim() || !editData.cliente.telefono.trim() ||
             !editData.fecha || !editData.hora) {
             toast.current?.show({
@@ -273,6 +340,7 @@ export default function SidebarDemo() {
 
             const citaActualizada = {
                 idCita: citaAEditar.idCita,
+                sucursal: { idSucursal: editData.sucursal.idSucursal },
                 barbero: { idBarbero: editData.barbero.idBarbero },
                 servicio: { idServicio: editData.servicio.idServicio },
                 cliente: { idCliente: citaAEditar.cliente.idCliente },
@@ -293,7 +361,6 @@ export default function SidebarDemo() {
             setShowEditDialog(false);
             setCitaAEditar(null);
 
-            // Actualizar la lista de citas del día en el estado
             const citasDelDiaActualizadas = citasDelDia.map(c =>
                 c.idCita === citaAEditar.idCita ? citaActualizadaData : c
             );
@@ -330,11 +397,9 @@ export default function SidebarDemo() {
                         life: 3000
                     });
 
-                    // Actualizar la lista de citas del día para reflejar la eliminación
                     const citasDelDiaActualizadas = citasDelDia.filter(c => c.idCita !== cita.idCita);
                     setCitasDelDia(citasDelDiaActualizadas);
 
-                    // Recargar todas las citas para actualizar el calendario
                     await loadCitas();
 
                     if (citasDelDiaActualizadas.length === 0) {
@@ -463,7 +528,6 @@ export default function SidebarDemo() {
             <Toast ref={toast} />
             <ConfirmDialog />
 
-            {/* Topbar */}
             <div style={{
                 position: 'fixed',
                 top: 0,
@@ -483,7 +547,6 @@ export default function SidebarDemo() {
                 <i className="pi pi-bell" style={{ fontSize: '1.5rem' }}></i>
             </div>
 
-            {/* Sidebar */}
             <div style={{
                 width: '250px',
                 borderRight: '1px solid #ccc',
@@ -497,7 +560,6 @@ export default function SidebarDemo() {
                 <PanelMenu model={items} style={{ width: '100%' }} />
             </div>
 
-            {/* Main Content */}
             <div style={{
                 flexGrow: 1,
                 marginLeft: '100px',
@@ -507,7 +569,6 @@ export default function SidebarDemo() {
                 justifyContent: 'center',
                 gap: '3rem',
             }}>
-                {/* Calendar */}
                 <div style={{ width: '750px', height: '560px' }}>
                     <Calendar
                         value={date}
@@ -522,8 +583,16 @@ export default function SidebarDemo() {
                     <Card title="Nueva Cita">
                         <div className="p-fluid" style={{ padding: '0.5rem' }}>
                             <div className="field mb-3">
+                                <label htmlFor="sucursal" className="font-bold">Sucursal</label>
+                                <Dropdown id="sucursal" value={selectedSucursal} onChange={(e) => {
+                                    setSelectedSucursal(e.value);
+                                    setSelectedBarbero(null);
+                                }} options={sucursales} optionLabel="direccion" placeholder="Selecciona una sucursal" className={classNames({'p-invalid': submitted && !selectedSucursal})} />
+                                {submitted && !selectedSucursal && <small className="p-error">La sucursal es requerida.</small>}
+                            </div>
+                            <div className="field mb-3">
                                 <label htmlFor="barbero" className="font-bold">Barbero</label>
-                                <Dropdown id="barbero" value={selectedBarbero} onChange={(e) => setSelectedBarbero(e.value)} options={barberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" className={classNames({'p-invalid': submitted && !selectedBarbero})} />
+                                <Dropdown id="barbero" value={selectedBarbero} onChange={(e) => setSelectedBarbero(e.value)} options={barberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!selectedSucursal} className={classNames({'p-invalid': submitted && !selectedBarbero})} />
                                 {submitted && !selectedBarbero && <small className="p-error">El barbero es requerido.</small>}
                             </div>
                             <div className="field mb-3">
@@ -571,8 +640,12 @@ export default function SidebarDemo() {
 
             <Dialog visible={showEditDialog} style={{ width: '32rem' }} breakpoints={{ '960px': '75vw', '641px': '90vw' }} header="Editar Cita" modal className="p-fluid" footer={editDialogFooter} onHide={() => setShowEditDialog(false)}>
                 <div className="field mb-3">
+                    <label htmlFor="edit-sucursal" className="font-bold">Sucursal</label>
+                    <Dropdown id="edit-sucursal" value={editData.sucursal} onChange={(e) => setEditData({ ...editData, sucursal: e.value, barbero: null })} options={sucursales} optionLabel="direccion" placeholder="Selecciona una sucursal" />
+                </div>
+                <div className="field mb-3">
                     <label htmlFor="edit-barbero" className="font-bold">Barbero</label>
-                    <Dropdown id="edit-barbero" value={editData.barbero} onChange={(e) => setEditData({...editData, barbero: e.value})} options={barberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" />
+                    <Dropdown id="edit-barbero" value={editData.barbero} onChange={(e) => setEditData({...editData, barbero: e.value})} options={editBarberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!editData.sucursal} />
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-servicio" className="font-bold">Servicio</label>
@@ -598,3 +671,4 @@ export default function SidebarDemo() {
         </div>
     );
 }
+

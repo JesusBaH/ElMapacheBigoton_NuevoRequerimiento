@@ -7,6 +7,7 @@ import {Dialog} from 'primereact/dialog';
 import {classNames} from "primereact/utils";
 import BarberoService from "../Services/BarberoService.tsx";
 import ServicioService from "../Services/ServicioService.tsx";
+import SucursalService from "../Services/SucursalService.tsx";
 import { Card } from 'primereact/card';
 import { PanelMenu } from 'primereact/panelmenu';
 import type { MenuItem } from 'primereact/menuitem';
@@ -26,6 +27,10 @@ interface Servicio {
     costo: number;
 }
 
+interface Sucursal {
+    idSucursal: number | null;
+    direccion: string;
+}
 
 const buttonStyles = {
     add: {
@@ -115,6 +120,11 @@ export default function CRUDBarberoComponent() {
         costo: 0
     };
 
+    const emptySucursal: Sucursal = {
+        idSucursal: null,
+        direccion: ''
+    };
+
     const [barberos, setBarberos] = useState<Barbero[]>([]);
     const [barbero, setBarbero] = useState<Barbero>(emptyBarbero);
     const [barberoDialog, setBarberoDialog] = useState<boolean>(false);
@@ -124,6 +134,11 @@ export default function CRUDBarberoComponent() {
     const [servicio, setServicio] = useState<Servicio>(emptyServicio);
     const [servicioDialog, setServicioDialog] = useState<boolean>(false);
     const [deleteServicioDialog, setDeleteServicioDialog] = useState<boolean>(false);
+
+    const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+    const [sucursal, setSucursal] = useState<Sucursal>(emptySucursal);
+    const [sucursalDialog, setSucursalDialog] = useState<boolean>(false);
+    const [deleteSucursalDialog, setDeleteSucursalDialog] = useState<boolean>(false);
 
     const [submitted, setSubmitted] = useState<boolean>(false);
     const toast = useRef<Toast>(null);
@@ -136,6 +151,20 @@ export default function CRUDBarberoComponent() {
         { label: 'Catálogos', icon: 'pi pi-pen-to-square', url: '/catalogos' },
     ];
 
+    const loadSucursales = async () => {
+        try {
+            const response = await SucursalService.findAll();
+            setSucursales(response.data);
+        } catch (error) {
+            console.error("Error al obtener las sucursales:", error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar las sucursales',
+                life: 3000
+            });
+        }
+    };
 
     const loadServicios = async () => {
         try {
@@ -171,6 +200,7 @@ export default function CRUDBarberoComponent() {
     useEffect(() => {
         loadBarberos();
         loadServicios();
+        loadSucursales();
     }, []);
 
     const openNew = () => {
@@ -278,7 +308,6 @@ export default function CRUDBarberoComponent() {
         }
     };
 
-
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = (e.target && e.target.value)||"";
         const _barbero = {...barbero};
@@ -305,7 +334,6 @@ export default function CRUDBarberoComponent() {
         setSubmitted(true);
         if (servicio.descripcion.trim() && (servicio.costo || servicio.costo === 0)) {
             try {
-
                 if (servicio.idServicio) {
                     await ServicioService.update(servicio.idServicio, servicio);
                     toast.current?.show({
@@ -315,7 +343,6 @@ export default function CRUDBarberoComponent() {
                         life: 3000
                     });
                 } else {
-
                     await ServicioService.create(servicio);
                     toast.current?.show({
                         severity: 'success',
@@ -351,7 +378,6 @@ export default function CRUDBarberoComponent() {
 
     const deleteServicio = async () => {
         try {
-
             if (servicio.idServicio !== null) {
                 await ServicioService.delete(servicio.idServicio);
                 await loadServicios();
@@ -370,6 +396,89 @@ export default function CRUDBarberoComponent() {
         const _servicio = {...servicio};
         _servicio.descripcion = val;
         setServicio(_servicio);
+    };
+
+    const openNewSucursal = () => {
+        setSucursal(emptySucursal);
+        setSubmitted(false);
+        setSucursalDialog(true);
+    };
+
+    const hideSucursalDialog = () => {
+        setSubmitted(false);
+        setSucursalDialog(false);
+    };
+
+    const hideDeleteSucursalDialog = () => {
+        setDeleteSucursalDialog(false);
+    };
+
+    const saveSucursal = async () => {
+        setSubmitted(true);
+        if (sucursal.direccion.trim()) {
+            try {
+                if (sucursal.idSucursal) {
+                    await SucursalService.update(sucursal.idSucursal, sucursal);
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Éxito',
+                        detail: 'Sucursal Actualizada',
+                        life: 3000
+                    });
+                } else {
+                    await SucursalService.create(sucursal);
+                    toast.current?.show({
+                        severity: 'success',
+                        summary: 'Éxito',
+                        detail: 'Sucursal Creada',
+                        life: 3000
+                    });
+                }
+                await loadSucursales();
+                setSucursalDialog(false);
+                setSucursal(emptySucursal);
+            } catch (error) {
+                console.error("Error al guardar la sucursal:", error);
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudo guardar la sucursal',
+                    life: 3000
+                });
+            }
+        }
+    };
+
+    const editSucursal = (sucursal: Sucursal) => {
+        setSucursal({...sucursal});
+        setSucursalDialog(true);
+    };
+
+    const confirmDeleteSucursal = (sucursal: Sucursal) => {
+        setSucursal(sucursal);
+        setDeleteSucursalDialog(true);
+    };
+
+    const deleteSucursal = async () => {
+        try {
+            if (sucursal.idSucursal !== null) {
+                await SucursalService.delete(sucursal.idSucursal);
+                await loadSucursales();
+                setDeleteSucursalDialog(false);
+                setSucursal(emptySucursal);
+                toast.current?.show({severity: 'success', summary: 'Resultado', detail: 'Sucursal Eliminada', life: 3000});
+            }
+        } catch (error) {
+            console.error("Error al eliminar la sucursal:", error);
+            toast.current?.show({severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la sucursal', life: 3000});
+        }
+    };
+
+    const onSucursalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = (e.target && e.target.value) || "";
+        const _sucursal = {...sucursal};
+        _sucursal.direccion = val;
+        setSucursal(_sucursal);
     };
 
     const leftToolbarTemplate = () => {
@@ -445,6 +554,29 @@ export default function CRUDBarberoComponent() {
         </React.Fragment>
     );
 
+    const sucursalDialogFooter = (
+        <React.Fragment>
+            <Button
+                label="Cancelar"
+                icon="pi pi-times"
+                outlined
+                style={buttonStyles.cancel.default}
+                onMouseEnter={(e) => handleButtonHover(e, 'cancel', true)}
+                onMouseLeave={(e) => handleButtonHover(e, 'cancel', false)}
+                onClick={hideSucursalDialog}
+            />
+            <Button
+                label="Guardar"
+                icon="pi pi-check"
+                outlined
+                style={buttonStyles.add.default}
+                onMouseEnter={(e) => handleButtonHover(e, 'add', true)}
+                onMouseLeave={(e) => handleButtonHover(e, 'add', false)}
+                onClick={saveSucursal}
+            />
+        </React.Fragment>
+    );
+
     const deleteServicioDialogFooter = (
         <React.Fragment>
             <Button
@@ -464,6 +596,29 @@ export default function CRUDBarberoComponent() {
                 onMouseEnter={(e) => handleButtonHover(e, 'delete', true)}
                 onMouseLeave={(e) => handleButtonHover(e, 'delete', false)}
                 onClick={deleteServicio}
+            />
+        </React.Fragment>
+    );
+
+    const deleteSucursalDialogFooter = (
+        <React.Fragment>
+            <Button
+                label="No"
+                icon="pi pi-times"
+                outlined
+                style={buttonStyles.cancel.default}
+                onMouseEnter={(e) => handleButtonHover(e, 'cancel', true)}
+                onMouseLeave={(e) => handleButtonHover(e, 'cancel', false)}
+                onClick={hideDeleteSucursalDialog}
+            />
+            <Button
+                label="Sí"
+                icon="pi pi-check"
+                outlined
+                style={buttonStyles.delete.default}
+                onMouseEnter={(e) => handleButtonHover(e, 'delete', true)}
+                onMouseLeave={(e) => handleButtonHover(e, 'delete', false)}
+                onClick={deleteSucursal}
             />
         </React.Fragment>
     );
@@ -488,6 +643,31 @@ export default function CRUDBarberoComponent() {
                     onMouseEnter={(e) => handleButtonHover(e, 'delete', true)}
                     onMouseLeave={(e) => handleButtonHover(e, 'delete', false)}
                     onClick={() => confirmDeleteServicio(rowData)}
+                />
+            </div>
+        );
+    };
+
+    const actionBodyTemplateSucursal = (rowData: Sucursal) => {
+        return (
+            <div className="flex flex-wrap gap-2">
+                <Button
+                    icon="pi pi-pencil"
+                    rounded
+                    outlined
+                    style={buttonStyles.edit.default}
+                    onMouseEnter={(e) => handleButtonHover(e, 'edit', true)}
+                    onMouseLeave={(e) => handleButtonHover(e, 'edit', false)}
+                    onClick={() => editSucursal(rowData)}
+                />
+                <Button
+                    icon="pi pi-trash"
+                    rounded
+                    outlined
+                    style={buttonStyles.delete.default}
+                    onMouseEnter={(e) => handleButtonHover(e, 'delete', true)}
+                    onMouseLeave={(e) => handleButtonHover(e, 'delete', false)}
+                    onClick={() => confirmDeleteSucursal(rowData)}
                 />
             </div>
         );
@@ -902,6 +1082,45 @@ export default function CRUDBarberoComponent() {
                     </DataTable>
                 </div>
 
+                <div className="card mt-5" style={{
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                }}>
+                    <div className="header-container" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1rem 0',
+                        borderBottom: '1px solid #ddd',
+                        marginBottom: '1rem'
+                    }}>
+                        <h2 className="titulo-principal" style={{
+                            margin: 0,
+                            fontSize: '2rem',
+                            fontWeight: 'bold'
+                        }}>
+                            Mis Sucursales
+                        </h2>
+                        <Button
+                            icon="pi pi-plus"
+                            rounded
+                            outlined
+                            style={buttonStyles.add.default}
+                            onMouseEnter={(e) => handleButtonHover(e, 'add', true)}
+                            onMouseLeave={(e) => handleButtonHover(e, 'add', false)}
+                            onClick={openNewSucursal}
+                        />
+                    </div>
+                    <DataTable value={sucursales} tableStyle={{ minWidth: '50rem' }}>
+                        <Column field="direccion" header="Dirección de la Sucursal"></Column>
+                        <Column
+                            header="Acciones"
+                            body={actionBodyTemplateSucursal}
+                            style={{ minWidth: '8rem', textAlign: 'center' }}
+                        />
+                    </DataTable>
+                </div>
+
                 <Dialog
                     visible={barberoDialog}
                     style={{ width: '32rem' }}
@@ -1068,6 +1287,79 @@ export default function CRUDBarberoComponent() {
                             }}>
                                 ¿Estás seguro de eliminar el servicio: <br/>
                                 <strong style={{color: '#ef4444', fontSize: '1.2rem'}}>"{servicio.descripcion}"</strong>?
+                            </span>
+                        )}
+                    </div>
+                </Dialog>
+
+                <Dialog
+                    visible={sucursalDialog}
+                    style={{ width: '32rem' }}
+                    breakpoints={{ '960px': '75vw', '641px': '90vw' }}
+                    header={
+                        <div className="flex align-items-center gap-2">
+                            <i className="pi pi-building" style={{color: '#6366f1'}}></i>
+                            <span style={{color: '#333', fontWeight: '600'}}>Detalles de la Sucursal</span>
+                        </div>
+                    }
+                    modal
+                    className="p-fluid"
+                    footer={sucursalDialogFooter}
+                    onHide={hideSucursalDialog}
+                >
+                    <div className="field">
+                        <label htmlFor="direccion" className="font-bold" style={{
+                            color: '#333',
+                            marginBottom: '0.5rem',
+                            display: 'block'
+                        }}>
+                            Dirección
+                        </label>
+                        <InputText
+                            id="direccion"
+                            value={sucursal.direccion}
+                            onChange={onSucursalInputChange}
+                            required
+                            autoFocus
+                            className={classNames({'p-invalid': submitted && !sucursal.direccion})}
+                            style={{
+                                borderRadius: '8px',
+                                padding: '0.75rem',
+                                transition: 'all 0.3s ease'
+                            }}
+                        />
+                        {submitted && !sucursal.direccion && <small className="p-error">La dirección es requerida.</small>}
+                    </div>
+                </Dialog>
+
+                <Dialog
+                    visible={deleteSucursalDialog}
+                    style={{ width: '32rem' }}
+                    breakpoints={{ '960px': '75vw', '641px': '90vw' }}
+                    header={
+                        <div className="flex align-items-center gap-2">
+                            <i className="pi pi-exclamation-triangle" style={{color: '#ef4444'}}></i>
+                            <span style={{color: '#333', fontWeight: '600'}}>Confirmar Eliminación</span>
+                        </div>
+                    }
+                    modal
+                    footer={deleteSucursalDialogFooter}
+                    onHide={hideDeleteSucursalDialog}
+                >
+                    <div className="confirmation-content flex align-items-center gap-3 p-3" style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(239, 68, 68, 0.1)'
+                    }}>
+                        <i className="pi pi-exclamation-triangle text-3xl" style={{ color: '#ef4444' }} />
+                        {sucursal && (
+                            <span style={{
+                                color: '#333',
+                                fontSize: '1.1rem',
+                                lineHeight: '1.5'
+                            }}>
+                                ¿Estás seguro de eliminar la sucursal: <br/>
+                                <strong style={{color: '#ef4444', fontSize: '1.2rem'}}>"{sucursal.direccion}"</strong>?
                             </span>
                         )}
                     </div>

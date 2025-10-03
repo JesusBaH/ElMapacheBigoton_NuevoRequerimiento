@@ -4,6 +4,7 @@ package com.mapacheBigoton.api.cita;
 import com.mapacheBigoton.api.barbero.Barbero;
 import com.mapacheBigoton.api.cliente.Cliente;
 import com.mapacheBigoton.api.servicio.Servicio;
+import com.mapacheBigoton.api.sucursal.Sucursal;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -38,4 +39,8 @@ public class Cita {
     @ManyToOne
     @JoinColumn(name = "idServicio", nullable = false)
     private Servicio servicio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idSucursal", nullable = false)
+    private Sucursal sucursal;
 }

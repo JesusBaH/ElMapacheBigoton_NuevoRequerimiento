@@ -16,6 +16,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputNumber } from 'primereact/inputnumber';
 
+
 interface Barbero {
     idBarbero: number | null;
     nombre: string;

@@ -5,9 +5,9 @@ import {Toast} from 'primereact/toast';
 import {Toolbar} from 'primereact/toolbar';
 import {Dialog} from 'primereact/dialog';
 import {classNames} from "primereact/utils";
-import BarberoService from "../services/BarberoService";
-import ServicioService from "../services/ServicioService";
-import SucursalService from "../services/SucursalService";
+import BarberoService from "../Services/BarberoService.tsx";
+import ServicioService from "../Services/ServicioService.tsx";
+import SucursalService from "../Services/SucursalService.tsx";
 import { Card } from 'primereact/card';
 import { PanelMenu } from 'primereact/panelmenu';
 import type { MenuItem } from 'primereact/menuitem';
@@ -246,13 +246,10 @@ export default function CRUDBarberoComponent() {
         setSubmitted(true);
         if (barbero.nombre.trim() && barbero.sucursal?.idSucursal) {
             try {
-                const payload = {
-                    idBarbero: barbero.idBarbero,
-                    nombre: barbero.nombre,
-                    sucursal: { idSucursal: barbero.sucursal.idSucursal }
-                };
-
                 if (barbero.idBarbero) {
+                    const payload = {
+                        nombre: barbero.nombre,
+                    };
                     await BarberoService.update(barbero.idBarbero, payload);
                     toast.current?.show({
                         severity: 'success',
@@ -261,7 +258,8 @@ export default function CRUDBarberoComponent() {
                         life: 3000
                     });
                 } else {
-                    await BarberoService.create(payload);
+                    const payload = { nombre: barbero.nombre };
+                    await BarberoService.create(payload, barbero.sucursal.idSucursal);
                     toast.current?.show({
                         severity: 'success',
                         summary: 'Éxito',
@@ -738,6 +736,7 @@ export default function CRUDBarberoComponent() {
                             fontSize: '1.2rem',
                             transition: 'color 0.3s ease'
                         }} onClick={toggleDeleteMode}></i>
+
                     </div>
                 ) : !editMode && (
                     <div style={{
@@ -1404,4 +1403,3 @@ export default function CRUDBarberoComponent() {
         </div>
     );
 }
-

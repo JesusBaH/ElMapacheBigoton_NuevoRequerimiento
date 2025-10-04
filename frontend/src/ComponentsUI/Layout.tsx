@@ -19,7 +19,7 @@ import BarberoService from '../Services/BarberoService';
 import ServicioService from '../Services/ServicioService';
 import ClienteService from '../Services/ClienteService';
 import CitaService from '../Services/CitaService';
-import SucursalService from '../Services/SucursalService';
+import SucursalService from "../Services/SucursalService.tsx";
 
 interface Barbero {
     idBarbero: number | null;
@@ -50,6 +50,11 @@ interface FormattedBarbero {
 interface FormattedServicio {
     idServicio: number | null;
     nombreServicio: string;
+}
+
+interface FormattedSucursal {
+    idSucursal: number | null;
+    nombreSucursal: string;
 }
 
 interface Cita {
@@ -88,14 +93,12 @@ export default function SidebarDemo() {
     const toast = useRef<Toast>(null);
     const [date, setDate] = useState<Nullable<Date>>(null);
     const [selectedDate, setSelectedDate] = useState<Nullable<Date>>(null);
-
-    const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-    const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null);
-
     const [barberos, setBarberos] = useState<FormattedBarbero[]>([]);
     const [servicios, setServicios] = useState<FormattedServicio[]>([]);
+    const [sucursales, setSucursales] = useState<FormattedSucursal[]>([]);
     const [selectedBarbero, setSelectedBarbero] = useState<FormattedBarbero | null>(null);
     const [selectedServicio, setSelectedServicio] = useState<FormattedServicio | null>(null);
+    const [selectedSucursal, setSelectedSucursal] = useState<FormattedSucursal | null>(null);
     const [cliente, setCliente] = useState<Cliente>({ nombre: '', telefono: '' });
     const [hora, setHora] = useState<Nullable<Date>>(null);
     const [submitted, setSubmitted] = useState<boolean>(false);
@@ -105,12 +108,11 @@ export default function SidebarDemo() {
     const [fechasConCitas, setFechasConCitas] = useState<string[]>([]);
     const [showEditDialog, setShowEditDialog] = useState<boolean>(false);
     const [citaAEditar, setCitaAEditar] = useState<Cita | null>(null);
-
-    const [editBarberos, setEditBarberos] = useState<FormattedBarbero[]>([]);
+    const [barberosDisponibles, setBarberosDisponibles] = useState<FormattedBarbero[]>([]);
     const [editData, setEditData] = useState({
-        sucursal: null as Sucursal | null,
         barbero: null as FormattedBarbero | null,
         servicio: null as FormattedServicio | null,
+        sucursal: null as FormattedSucursal | null,
         cliente: { nombre: '', telefono: '' },
         fecha: null as Nullable<Date>,
         hora: null as Nullable<Date>
@@ -118,7 +120,7 @@ export default function SidebarDemo() {
 
     const items: MenuItem[] = [
         { label: 'Agenda', icon: 'pi pi-calendar' },
-        { label: 'Catálogos', icon: 'pi pi-pen-to-square' , url: '/catalogos' },
+        { label: 'Cátalogos', icon: 'pi pi-pen-to-square' , url: '/catalogos' },
     ];
 
     const loadCitas = async () => {
@@ -142,31 +144,22 @@ export default function SidebarDemo() {
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const [sucursalesResponse, serviciosResponse] = await Promise.all([
-                    SucursalService.findAll(),
-                    ServicioService.findAll()
+                const [serviciosResponse, sucursalesResponse] = await Promise.all([
+                    ServicioService.findAll(),
+                    SucursalService.findAll()
                 ]);
 
-                if (Array.isArray(sucursalesResponse.data)) {
-                    setSucursales(sucursalesResponse.data);
-                } else {
-                    setSucursales([]);
-                }
+                setServicios(serviciosResponse.data.map((s: Servicio) => ({
+                    idServicio: s.idServicio,
+                    nombreServicio: s.descripcion
+                })));
 
-                if (Array.isArray(serviciosResponse.data)) {
-                    const serviciosFormateados = serviciosResponse.data.map((s: Servicio) => ({
-                        idServicio: s.idServicio,
-                        nombreServicio: s.descripcion
-                    }));
-                    setServicios(serviciosFormateados);
-                } else {
-                    setServicios([]);
-                }
-
+                setSucursales(sucursalesResponse.data.map((s: Sucursal) => ({
+                    idSucursal: s.idSucursal,
+                    nombreSucursal: s.direccion
+                })));
             } catch (error) {
                 console.error("Error al cargar los datos iniciales:", error);
-                setSucursales([]);
-                setServicios([]);
                 toast.current?.show({
                     severity: 'error',
                     summary: 'Error',
@@ -176,205 +169,179 @@ export default function SidebarDemo() {
             }
         };
 
+
         loadInitialData();
         loadCitas();
     }, []);
 
-    useEffect(() => {
-        const loadBarberosPorSucursal = async () => {
-            if (selectedSucursal && selectedSucursal.idSucursal) {
-                try {
-                    // This assumes a BarberoService.findBySucursalId method exists on your backend
-                    const response = await BarberoService.findBySucursalId(selectedSucursal.idSucursal);
-                    if (Array.isArray(response.data)) {
-                        const barberosFormateados = response.data.map((b: Barbero) => ({
-                            idBarbero: b.idBarbero,
-                            nombreBarbero: b.nombre
-                        }));
-                        setBarberos(barberosFormateados);
-                    } else {
-                        setBarberos([]);
-                    }
-                } catch (error) {
-                    console.error("Error al cargar los barberos por sucursal:", error);
-                    setBarberos([]);
-                }
-            } else {
-                setBarberos([]);
+    const fetchBarberosPorSucursal = async (sucursalId: number) => {
+        try {
+            const response = await BarberoService.findBySucursal(sucursalId);
+            if (response.data && Array.isArray(response.data)) {
+                const formattedBarberos = response.data.map((b: Barbero) => ({
+                    idBarbero: b.idBarbero,
+                    nombreBarbero: b.nombre
+                }));
+                return formattedBarberos;
             }
-        };
+        } catch (error) {
+            console.error("Error al buscar barberos por sucursal", error);
+        }
+        return [];
+    };
 
-        loadBarberosPorSucursal();
-    }, [selectedSucursal]);
+    const onSucursalChange = async (sucursal: FormattedSucursal | null) => {
+        setSelectedSucursal(sucursal);
+        setSelectedBarbero(null);
+        if (sucursal && sucursal.idSucursal) {
+            const barberosFetched = await fetchBarberosPorSucursal(sucursal.idSucursal);
+            setBarberosDisponibles(barberosFetched);
+        } else {
+            setBarberosDisponibles([]);
+        }
+    };
 
-    useEffect(() => {
-        const loadBarberosParaEditar = async () => {
-            if (showEditDialog && editData.sucursal && editData.sucursal.idSucursal) {
-                try {
-                    const response = await BarberoService.findBySucursalId(editData.sucursal.idSucursal);
-                    if (Array.isArray(response.data)) {
-                        const barberosFormateados = response.data.map((b: Barbero) => ({
-                            idBarbero: b.idBarbero,
-                            nombreBarbero: b.nombre
-                        }));
-                        setEditBarberos(barberosFormateados);
-                    } else {
-                        setEditBarberos([]);
-                    }
-                } catch (error) {
-                    console.error("Error al cargar barberos para editar:", error);
-                    setEditBarberos([]);
-                }
-            }
-        };
-        loadBarberosParaEditar();
-    }, [showEditDialog, editData.sucursal]);
+    const onEditSucursalChange = async (sucursal: FormattedSucursal | null) => {
+        setEditData(prevData => ({ ...prevData, sucursal: sucursal, barbero: null }));
+        if (sucursal && sucursal.idSucursal) {
+            const barberosFetched = await fetchBarberosPorSucursal(sucursal.idSucursal);
+            setBarberos(barberosFetched);
+        } else {
+            setBarberos([]);
+        }
+    };
 
     const handleAgendarCita = async () => {
         setSubmitted(true);
-        if (!selectedSucursal || !selectedBarbero || !selectedServicio || !cliente.nombre.trim() || !cliente.telefono.trim() || !selectedDate || !hora) {
-            toast.current?.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Por favor, complete todos los campos.',
-                life: 3000
-            });
+        if (!selectedBarbero || !selectedServicio || !selectedSucursal || !cliente.nombre.trim() || !cliente.telefono.trim() || !selectedDate || !hora) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Por favor, complete todos los campos.', life: 3000 });
             return;
         }
 
         try {
-            const newClient = {
+            const clientResponse = await ClienteService.create({
                 nombre: cliente.nombre,
                 telefono: cliente.telefono
-            };
-            const clientResponse = await ClienteService.create(newClient);
+            });
             const idCliente = clientResponse.data.idCliente;
 
             const nuevaCita = {
-                sucursal: { idSucursal: selectedSucursal.idSucursal },
-                barbero: { idBarbero: selectedBarbero.idBarbero },
-                servicio: { idServicio: selectedServicio.idServicio },
-                cliente: { idCliente: idCliente },
                 fecha: selectedDate.toISOString().split('T')[0],
-                hora: hora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                hora: hora.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                barbero: {
+                    idBarbero: selectedBarbero.idBarbero,
+                    nombre: selectedBarbero.nombreBarbero
+                },
+                servicio: {
+                    idServicio: selectedServicio.idServicio,
+                    descripcion: selectedServicio.nombreServicio
+                },
+                sucursal: {
+                    idSucursal: selectedSucursal.idSucursal,
+                    direccion: selectedSucursal.nombreSucursal
+                },
+                cliente: {
+                    idCliente: idCliente
+                }
             };
 
             await CitaService.create(nuevaCita);
+            toast.current?.show({ severity: 'success', summary: 'Éxito', detail: 'Cita agendada correctamente.', life: 3000 });
 
-            toast.current?.show({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Cita agendada correctamente.',
-                life: 3000
-            });
-
-            setSelectedSucursal(null);
             setSelectedBarbero(null);
             setSelectedServicio(null);
+            setSelectedSucursal(null);
             setCliente({ nombre: '', telefono: '' });
             setSelectedDate(null);
             setHora(null);
             setSubmitted(false);
+            setBarberosDisponibles([]);
 
             await loadCitas();
 
         } catch (error) {
             console.error("Error al agendar la cita:", error);
-            toast.current?.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo agendar la cita. Intente de nuevo.',
-                life: 3000
-            });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'No se pudo agendar la cita. Intente de nuevo.', life: 3000 });
         }
     };
 
-    const handleEditarCita = (cita: Cita) => {
+    const handleEditarCita = async (cita: Cita) => {
+        const sucursalFormateada = sucursales.find(s => s.idSucursal === cita.sucursal.idSucursal) || null;
+        if (sucursalFormateada && sucursalFormateada.idSucursal) {
+            const barberosFetched = await fetchBarberosPorSucursal(sucursalFormateada.idSucursal);
+            setBarberos(barberosFetched);
+        }
+
         setCitaAEditar(cita);
 
-        const sucursalSeleccionada = sucursales.find(s => s.idSucursal === cita.sucursal.idSucursal);
         const barberoFormateado = { idBarbero: cita.barbero.idBarbero, nombreBarbero: cita.barbero.nombre };
         const servicioFormateado = servicios.find(s => s.idServicio === cita.servicio.idServicio);
 
         const fechaCita = new Date(cita.fecha + 'T00:00:00');
-
         const [horas, minutos] = cita.hora.split(':');
         const horaCita = new Date();
-        horaCita.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+        horaCita.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0, 0);
 
         setEditData({
-            sucursal: sucursalSeleccionada || null,
             barbero: barberoFormateado || null,
             servicio: servicioFormateado || null,
-            cliente: {
-                nombre: cita.cliente.nombre,
-                telefono: cita.cliente.telefono
-            },
+            sucursal: sucursalFormateada,
+            cliente: { ...cita.cliente },
             fecha: fechaCita,
             hora: horaCita
         });
-
         setShowEditDialog(true);
     };
 
     const handleActualizarCita = async () => {
-        if (!citaAEditar || !editData.sucursal || !editData.barbero || !editData.servicio ||
-            !editData.cliente.nombre.trim() || !editData.cliente.telefono.trim() ||
-            !editData.fecha || !editData.hora) {
-            toast.current?.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Por favor, complete todos los campos.',
-                life: 3000
-            });
+        if (!citaAEditar || !editData.barbero || !editData.servicio || !editData.sucursal || !editData.cliente.nombre.trim() || !editData.cliente.telefono.trim() || !editData.fecha || !editData.hora) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Por favor, complete todos los campos.', life: 3000 });
             return;
         }
 
         try {
-            const clienteActualizado = {
+            await ClienteService.update(citaAEditar.cliente.idCliente, {
                 idCliente: citaAEditar.cliente.idCliente,
                 nombre: editData.cliente.nombre,
                 telefono: editData.cliente.telefono
-            };
-            await ClienteService.update(clienteActualizado.idCliente, clienteActualizado);
+            });
 
             const citaActualizada = {
                 idCita: citaAEditar.idCita,
-                sucursal: { idSucursal: editData.sucursal.idSucursal },
-                barbero: { idBarbero: editData.barbero.idBarbero },
-                servicio: { idServicio: editData.servicio.idServicio },
-                cliente: { idCliente: citaAEditar.cliente.idCliente },
                 fecha: editData.fecha.toISOString().split('T')[0],
-                hora: editData.hora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                hora: editData.hora.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                barbero: {
+                    idBarbero: editData.barbero.idBarbero,
+                    nombre: editData.barbero.nombreBarbero
+                },
+                servicio: {
+                    idServicio: editData.servicio.idServicio,
+                    descripcion: editData.servicio.nombreServicio
+                },
+                sucursal: {
+                    idSucursal: editData.sucursal.idSucursal,
+                    direccion: editData.sucursal.nombreSucursal
+                },
+                cliente: {
+                    idCliente: citaAEditar.cliente.idCliente,
+                    nombre: editData.cliente.nombre,
+                    telefono: editData.cliente.telefono
+                }
             };
 
-            const response = await CitaService.update(citaAEditar.idCita, citaActualizada);
-            const citaActualizadaData = response.data;
-
-            toast.current?.show({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Cita actualizada correctamente.',
-                life: 3000
-            });
-
+            await CitaService.update(citaAEditar.idCita, citaActualizada);
+            toast.current?.show({ severity: 'success', summary: 'Éxito', detail: 'Cita actualizada correctamente.', life: 3000 });
             setShowEditDialog(false);
             setCitaAEditar(null);
-
-            const citasDelDiaActualizadas = citasDelDia.map(c =>
-                c.idCita === citaAEditar.idCita ? citaActualizadaData : c
-            );
-            setCitasDelDia(citasDelDiaActualizadas);
             await loadCitas();
+
+            const fechaString = citaActualizada.fecha;
+            const citasDelDiaActualizadas = citas.filter(c => c.fecha === fechaString);
+            setCitasDelDia(citasDelDiaActualizadas);
 
         } catch (error) {
             console.error("Error al actualizar la cita:", error);
-            toast.current?.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudo actualizar la cita. Intente de nuevo.',
-                life: 3000
-            });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la cita.', life: 3000 });
         }
     };
 
@@ -389,31 +356,22 @@ export default function SidebarDemo() {
             accept: async () => {
                 try {
                     await CitaService.delete(cita.idCita);
+                    toast.current?.show({ severity: 'success', summary: 'Éxito', detail: 'Cita eliminada correctamente.', life: 3000 });
 
-                    toast.current?.show({
-                        severity: 'success',
-                        summary: 'Éxito',
-                        detail: 'Cita eliminada correctamente.',
-                        life: 3000
-                    });
+                    const citasActualizadas = citas.filter(c => c.idCita !== cita.idCita);
+                    setCitas(citasActualizadas);
 
                     const citasDelDiaActualizadas = citasDelDia.filter(c => c.idCita !== cita.idCita);
                     setCitasDelDia(citasDelDiaActualizadas);
 
-                    await loadCitas();
-
                     if (citasDelDiaActualizadas.length === 0) {
+                        const fechasActualizadas = [...new Set(citasActualizadas.map(c => c.fecha))];
+                        setFechasConCitas(fechasActualizadas);
                         setShowCitasDialog(false);
                     }
-
                 } catch (error) {
                     console.error("Error al eliminar la cita:", error);
-                    toast.current?.show({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudo eliminar la cita. Intente de nuevo.',
-                        life: 3000
-                    });
+                    toast.current?.show({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la cita.', life: 3000 });
                 }
             }
         });
@@ -422,23 +380,11 @@ export default function SidebarDemo() {
     const dateTemplate = (date: CalendarDate) => {
         const fechaString = `${date.year}-${String(date.month + 1).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
         const tieneCitas = fechasConCitas.includes(fechaString);
-
         return (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <span>{date.day}</span>
                 {tieneCitas && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '2px',
-                            width: '8px',
-                            height: '8px',
-                            backgroundColor: '#10b981',
-                            borderRadius: '50%',
-                            border: '1px solid white'
-                        }}
-                    />
+                    <div style={{ position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', border: '1px solid white' }} />
                 )}
             </div>
         );
@@ -452,7 +398,6 @@ export default function SidebarDemo() {
         if (fechaSeleccionada) {
             const fechaString = fechaSeleccionada.toISOString().split('T')[0];
             const citasDelDiaSeleccionado = citas.filter(cita => cita.fecha === fechaString);
-
             if (citasDelDiaSeleccionado.length > 0) {
                 setCitasDelDia(citasDelDiaSeleccionado);
                 setShowCitasDialog(true);
@@ -462,64 +407,31 @@ export default function SidebarDemo() {
 
     const horaBodyTemplate = (rowData: Cita) => <span>{rowData.hora}</span>;
     const barberoBodyTemplate = (rowData: Cita) => <span>{rowData.barbero.nombre}</span>;
-
+    const sucursalBodyTemplate = (rowData: Cita) => <span>{rowData.sucursal.direccion}</span>;
     const clienteBodyTemplate = (rowData: Cita) => (
         <div>
             <div style={{ fontWeight: 'bold' }}>{rowData.cliente.nombre}</div>
             <div style={{ fontSize: '0.9em', color: '#666' }}>{rowData.cliente.telefono}</div>
         </div>
     );
-
     const servicioBodyTemplate = (rowData: Cita) => (
         <div>
             <div>{rowData.servicio.descripcion}</div>
             <div style={{ fontSize: '0.9em', color: '#666' }}>${rowData.servicio.costo}</div>
         </div>
     );
-
     const accionesBodyTemplate = (rowData: Cita) => (
         <div className="flex gap-2 justify-content-center">
-            <Button
-                icon="pi pi-pencil"
-                rounded
-                outlined
-                className="p-button-success"
-                onClick={() => handleEditarCita(rowData)}
-                tooltip="Editar cita"
-            />
-            <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                className="p-button-danger"
-                onClick={() => handleEliminarCita(rowData)}
-                tooltip="Eliminar cita"
-            />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-success" onClick={() => handleEditarCita(rowData)} tooltip="Editar cita" />
+            <Button icon="pi pi-trash" rounded outlined className="p-button-danger" onClick={() => handleEliminarCita(rowData)} tooltip="Eliminar cita" />
         </div>
     );
 
-    const citasDialogFooter = (
-        <Button
-            label="Cerrar"
-            icon="pi pi-times"
-            onClick={() => setShowCitasDialog(false)}
-            className="p-button-text"
-        />
-    );
-
+    const citasDialogFooter = <Button label="Cerrar" icon="pi pi-times" onClick={() => setShowCitasDialog(false)} className="p-button-text" />;
     const editDialogFooter = (
         <>
-            <Button
-                label="Cancelar"
-                icon="pi pi-times"
-                outlined
-                onClick={() => setShowEditDialog(false)}
-            />
-            <Button
-                label="Actualizar"
-                icon="pi pi-check"
-                onClick={handleActualizarCita}
-            />
+            <Button label="Cancelar" icon="pi pi-times" outlined onClick={() => setShowEditDialog(false)} />
+            <Button label="Actualizar" icon="pi pi-check" onClick={handleActualizarCita} />
         </>
     );
 
@@ -527,72 +439,28 @@ export default function SidebarDemo() {
         <div style={{ display: 'flex' }}>
             <Toast ref={toast} />
             <ConfirmDialog />
-
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '60px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 1rem',
-                borderBottom: '1px solid #ccc',
-                zIndex: 1000
-            }}>
-                <span style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                    🦝 El Mapache Bigotón 💈
-                </span>
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', borderBottom: '1px solid #ccc', zIndex: 1000 }}>
+                <span style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>🦝 El Mapache Bigotón 💈</span>
                 <i className="pi pi-bell" style={{ fontSize: '1.5rem' }}></i>
             </div>
-
-            <div style={{
-                width: '250px',
-                borderRight: '1px solid #ccc',
-                height: '100vh',
-                overflowY: 'auto',
-                position: 'fixed',
-                top: '60px',
-                left: 0,
-                padding: '1rem'
-            }}>
+            <div style={{ width: '250px', borderRight: '1px solid #ccc', height: '100vh', overflowY: 'auto', position: 'fixed', top: '60px', left: 0, padding: '1rem' }}>
                 <PanelMenu model={items} style={{ width: '100%' }} />
             </div>
-
-            <div style={{
-                flexGrow: 1,
-                marginLeft: '100px',
-                marginTop: '60px',
-                padding: '2rem',
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '3rem',
-            }}>
+            <div style={{ flexGrow: 1, marginLeft: '250px', marginTop: '60px', padding: '2rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
                 <div style={{ width: '750px', height: '560px' }}>
-                    <Calendar
-                        value={date}
-                        onChange={handleDateSelect}
-                        inline
-                        showWeek
-                        dateTemplate={dateTemplate}
-                        style={{ width: '100%', height: '100%' }}
-                    />
+                    <Calendar value={date} onChange={handleDateSelect} inline showWeek dateTemplate={dateTemplate} style={{ width: '100%', height: '100%' }} />
                 </div>
                 <div style={{ width: '320px' }}>
                     <Card title="Nueva Cita">
                         <div className="p-fluid" style={{ padding: '0.5rem' }}>
                             <div className="field mb-3">
                                 <label htmlFor="sucursal" className="font-bold">Sucursal</label>
-                                <Dropdown id="sucursal" value={selectedSucursal} onChange={(e) => {
-                                    setSelectedSucursal(e.value);
-                                    setSelectedBarbero(null);
-                                }} options={sucursales} optionLabel="direccion" placeholder="Selecciona una sucursal" className={classNames({'p-invalid': submitted && !selectedSucursal})} />
+                                <Dropdown id="sucursal" value={selectedSucursal} onChange={(e) => onSucursalChange(e.value)} options={sucursales} optionLabel="nombreSucursal" placeholder="Selecciona una sucursal" className={classNames({'p-invalid': submitted && !selectedSucursal})} />
                                 {submitted && !selectedSucursal && <small className="p-error">La sucursal es requerida.</small>}
                             </div>
                             <div className="field mb-3">
                                 <label htmlFor="barbero" className="font-bold">Barbero</label>
-                                <Dropdown id="barbero" value={selectedBarbero} onChange={(e) => setSelectedBarbero(e.value)} options={barberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!selectedSucursal} className={classNames({'p-invalid': submitted && !selectedBarbero})} />
+                                <Dropdown id="barbero" value={selectedBarbero} onChange={(e) => setSelectedBarbero(e.value)} options={barberosDisponibles} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!selectedSucursal} className={classNames({'p-invalid': submitted && !selectedBarbero})} />
                                 {submitted && !selectedBarbero && <small className="p-error">El barbero es requerido.</small>}
                             </div>
                             <div className="field mb-3">
@@ -627,25 +495,24 @@ export default function SidebarDemo() {
                     </Card>
                 </div>
             </div>
-
             <Dialog visible={showCitasDialog} style={{ width: '80vw', maxWidth: '1000px' }} header={<div className="flex align-items-center gap-2"><i className="pi pi-calendar" style={{ color: '#10b981' }}></i><span style={{ color: '#333', fontWeight: '600' }}>Citas del {selectedDate?.toLocaleDateString('es-MX')}</span></div>} modal footer={citasDialogFooter} onHide={() => setShowCitasDialog(false)}>
                 <DataTable value={citasDelDia} responsiveLayout="scroll" emptyMessage="No hay citas para este día">
                     <Column field="hora" header="Hora" body={horaBodyTemplate} style={{ minWidth: '100px' }} />
+                    <Column field="sucursal.direccion" header="Sucursal" body={sucursalBodyTemplate} style={{ minWidth: '180px' }} />
                     <Column field="barbero.nombre" header="Barbero" body={barberoBodyTemplate} style={{ minWidth: '150px' }} />
                     <Column field="cliente" header="Cliente" body={clienteBodyTemplate} style={{ minWidth: '180px' }} />
                     <Column field="servicio" header="Servicio" body={servicioBodyTemplate} style={{ minWidth: '180px' }} />
                     <Column header="Acciones" body={accionesBodyTemplate} style={{ minWidth: '8rem', textAlign: 'center' }} />
                 </DataTable>
             </Dialog>
-
             <Dialog visible={showEditDialog} style={{ width: '32rem' }} breakpoints={{ '960px': '75vw', '641px': '90vw' }} header="Editar Cita" modal className="p-fluid" footer={editDialogFooter} onHide={() => setShowEditDialog(false)}>
                 <div className="field mb-3">
                     <label htmlFor="edit-sucursal" className="font-bold">Sucursal</label>
-                    <Dropdown id="edit-sucursal" value={editData.sucursal} onChange={(e) => setEditData({ ...editData, sucursal: e.value, barbero: null })} options={sucursales} optionLabel="direccion" placeholder="Selecciona una sucursal" />
+                    <Dropdown id="edit-sucursal" value={editData.sucursal} onChange={(e) => onEditSucursalChange(e.value)} options={sucursales} optionLabel="nombreSucursal" placeholder="Selecciona una sucursal" />
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-barbero" className="font-bold">Barbero</label>
-                    <Dropdown id="edit-barbero" value={editData.barbero} onChange={(e) => setEditData({...editData, barbero: e.value})} options={editBarberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!editData.sucursal} />
+                    <Dropdown id="edit-barbero" value={editData.barbero} onChange={(e) => setEditData({...editData, barbero: e.value})} options={barberos} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!editData.sucursal} />
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-servicio" className="font-bold">Servicio</label>
@@ -653,11 +520,11 @@ export default function SidebarDemo() {
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-nombre" className="font-bold">Nombre del Cliente</label>
-                    <InputText id="edit-nombre" value={editData.cliente.nombre} onChange={(e) => setEditData({ ...editData, cliente: {...editData.cliente, nombre: e.target.value} })} placeholder="Nombre del cliente" />
+                    <InputText id="edit-nombre" value={editData.cliente.nombre} onChange={(e) => setEditData({ ...editData, cliente: {...editData.cliente, nombre: e.target.value} })} />
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-telefono" className="font-bold">Teléfono del Cliente</label>
-                    <InputText id="edit-telefono" value={editData.cliente.telefono} onChange={(e) => setEditData({ ...editData, cliente: {...editData.cliente, telefono: e.target.value} })} placeholder="Teléfono del cliente" />
+                    <InputText id="edit-telefono" value={editData.cliente.telefono} onChange={(e) => setEditData({ ...editData, cliente: {...editData.cliente, telefono: e.target.value} })} />
                 </div>
                 <div className="field mb-3">
                     <label htmlFor="edit-fecha" className="font-bold">Fecha de la Cita</label>
@@ -671,4 +538,3 @@ export default function SidebarDemo() {
         </div>
     );
 }
-

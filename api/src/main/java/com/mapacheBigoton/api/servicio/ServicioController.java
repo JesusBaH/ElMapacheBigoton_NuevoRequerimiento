@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5174")
 @RestController
 @RequestMapping("/servicios")
 public class ServicioController {
@@ -48,4 +48,3 @@ public class ServicioController {
         return ResponseEntity.noContent().build();
     }
 }
-

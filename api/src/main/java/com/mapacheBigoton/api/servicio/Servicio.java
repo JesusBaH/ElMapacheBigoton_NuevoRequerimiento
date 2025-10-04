@@ -23,7 +23,6 @@ public class Servicio {
     @Column(nullable = false)
     private Double costo;
 
-    // Un servicio puede estar en varias citas
     @OneToMany(mappedBy = "servicio")
     @JsonIgnore
     private List<Cita> citas;

@@ -24,9 +24,8 @@ public class Cliente {
     @Column(nullable = false, length = 45)
     private String telefono;
 
-    // Relación con Cita
+
     @OneToMany(mappedBy = "cliente")
     @JsonIgnore
     private List<Cita> citas;
 }
-

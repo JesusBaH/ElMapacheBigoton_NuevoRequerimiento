@@ -1,5 +1,6 @@
 package com.mapacheBigoton.api.barbero;
 import com.mapacheBigoton.api.cita.Cita;
+import com.mapacheBigoton.api.sucursal.Sucursal;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,8 +20,13 @@ public class Barbero {
     @Column(nullable = false, length = 200)
     private String nombre;
 
-    // Relación con Cita
     @OneToMany(mappedBy = "barbero")
     @JsonIgnore
     private List<Cita> citas;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idSucursal")
+    @JsonIgnore
+    private Sucursal sucursal;
 }

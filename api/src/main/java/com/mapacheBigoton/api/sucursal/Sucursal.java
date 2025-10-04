@@ -1,6 +1,7 @@
 package com.mapacheBigoton.api.sucursal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mapacheBigoton.api.barbero.Barbero;
 import com.mapacheBigoton.api.cita.Cita;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,8 +26,9 @@ public class Sucursal {
     private String direccion;
 
 
-    @OneToMany(mappedBy = "sucursal")
-    @JsonIgnore
-    private List<Cita> citas;
+    @OneToMany(mappedBy = "sucursal", cascade = CascadeType.ALL)
+    private List<Barbero> barberos;
+
+
 
 }

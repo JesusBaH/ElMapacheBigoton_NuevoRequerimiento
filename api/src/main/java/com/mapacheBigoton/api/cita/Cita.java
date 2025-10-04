@@ -25,22 +25,24 @@ public class Cita {
     @Column(nullable = false, length = 45)
     private String hora;
 
-    // Relación con Barbero
+
     @ManyToOne
     @JoinColumn(name = "idBarbero", nullable = false)
     private Barbero barbero;
 
-    // Relación con Cliente
+
     @ManyToOne
     @JoinColumn(name = "idCliente", nullable = false)
     private Cliente cliente;
 
-    // Relación con Servicio (muchas citas pueden tener el mismo servicio)
+
     @ManyToOne
     @JoinColumn(name = "idServicio", nullable = false)
     private Servicio servicio;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "idSucursal", nullable = false)
     private Sucursal sucursal;
+
+
 }

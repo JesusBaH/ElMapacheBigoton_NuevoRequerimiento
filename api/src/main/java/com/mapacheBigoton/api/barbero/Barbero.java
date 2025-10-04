@@ -1,16 +1,21 @@
 package com.mapacheBigoton.api.barbero;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mapacheBigoton.api.cita.Cita;
 import com.mapacheBigoton.api.sucursal.Sucursal;
 import jakarta.persistence.*;
-import lombok.*;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "barbero")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Barbero {
 
     @Id
@@ -24,9 +29,7 @@ public class Barbero {
     @JsonIgnore
     private List<Cita> citas;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idSucursal")
-    @JsonIgnore
     private Sucursal sucursal;
 }

@@ -1,17 +1,20 @@
 package com.mapacheBigoton.api.cliente;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mapacheBigoton.api.cita.Cita;
 import jakarta.persistence.*;
-import lombok.*;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "clientes")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Cliente {
 
     @Id
@@ -23,7 +26,6 @@ public class Cliente {
 
     @Column(nullable = false, length = 45)
     private String telefono;
-
 
     @OneToMany(mappedBy = "cliente")
     @JsonIgnore

@@ -446,56 +446,70 @@ export default function SidebarDemo() {
             <div style={{ width: '250px', borderRight: '1px solid #ccc', height: '100vh', overflowY: 'auto', position: 'fixed', top: '60px', left: 0, padding: '1rem' }}>
                 <PanelMenu model={items} style={{ width: '100%' }} />
             </div>
-            <div style={{ flexGrow: 1, marginLeft: '250px', marginTop: '60px', padding: '2rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
+            <div style={{ flexGrow: 1, marginLeft: '100px', marginTop: '60px', padding: '2rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
                 <div style={{ width: '750px', height: '560px' }}>
                     <Calendar value={date} onChange={handleDateSelect} inline showWeek dateTemplate={dateTemplate} style={{ width: '100%', height: '100%' }} />
                 </div>
-                <div style={{ width: '320px' }}>
+
+
+                <div style={{ width: '385px' }}>
                     <Card title="Nueva Cita">
-                        <div className="p-fluid" style={{ padding: '0.5rem' }}>
-                            <div className="field mb-3">
+                        <div className="p-fluid">
+                            <div className="field mb-2">
                                 <label htmlFor="sucursal" className="font-bold">Sucursal</label>
                                 <Dropdown id="sucursal" value={selectedSucursal} onChange={(e) => onSucursalChange(e.value)} options={sucursales} optionLabel="nombreSucursal" placeholder="Selecciona una sucursal" className={classNames({'p-invalid': submitted && !selectedSucursal})} />
                                 {submitted && !selectedSucursal && <small className="p-error">La sucursal es requerida.</small>}
                             </div>
-                            <div className="field mb-3">
+
+                            <div className="field mb-2">
                                 <label htmlFor="barbero" className="font-bold">Barbero</label>
                                 <Dropdown id="barbero" value={selectedBarbero} onChange={(e) => setSelectedBarbero(e.value)} options={barberosDisponibles} optionLabel="nombreBarbero" placeholder="Selecciona un barbero" disabled={!selectedSucursal} className={classNames({'p-invalid': submitted && !selectedBarbero})} />
                                 {submitted && !selectedBarbero && <small className="p-error">El barbero es requerido.</small>}
                             </div>
-                            <div className="field mb-3">
+
+                            <div className="field mb-2">
                                 <label htmlFor="servicio" className="font-bold">Servicio</label>
                                 <Dropdown id="servicio" value={selectedServicio} onChange={(e) => setSelectedServicio(e.value)} options={servicios} optionLabel="nombreServicio" placeholder="Selecciona un servicio" className={classNames({'p-invalid': submitted && !selectedServicio})} />
                                 {submitted && !selectedServicio && <small className="p-error">El servicio es requerido.</small>}
                             </div>
-                            <div className="field mb-3">
-                                <label htmlFor="nombreCliente" className="font-bold">Nombre del Cliente</label>
-                                <InputText id="nombreCliente" value={cliente.nombre} onChange={(e) => setCliente({...cliente, nombre: e.target.value})} placeholder="Nombre del cliente" className={classNames({'p-invalid': submitted && !cliente.nombre.trim()})} />
-                                {submitted && !cliente.nombre.trim() && <small className="p-error">El nombre es requerido.</small>}
+
+                            <div className="grid">
+                                <div className="col field mb-2">
+                                    <label htmlFor="nombreCliente" className="font-bold">Nombre</label>
+                                    <InputText id="nombreCliente" value={cliente.nombre} onChange={(e) => setCliente({...cliente, nombre: e.target.value})} placeholder="Nombre del cliente" className={classNames({'p-invalid': submitted && !cliente.nombre.trim()})} />
+                                    {submitted && !cliente.nombre.trim() && <small className="p-error">Requerido.</small>}
+                                </div>
+                                <div className="col field mb-2">
+                                    <label htmlFor="telefono" className="font-bold">Teléfono</label>
+                                    <InputText id="telefono" type="tel" value={cliente.telefono} onChange={(e) => setCliente({...cliente, telefono: e.target.value})} placeholder="Teléfono" className={classNames({'p-invalid': submitted && !cliente.telefono.trim()})} />
+                                    {submitted && !cliente.telefono.trim() && <small className="p-error">Requerido.</small>}
+                                </div>
                             </div>
-                            <div className="field mb-3">
-                                <label htmlFor="telefono" className="font-bold">Teléfono del Cliente</label>
-                                <InputText id="telefono" type="tel" value={cliente.telefono} onChange={(e) => setCliente({...cliente, telefono: e.target.value})} placeholder="Teléfono del cliente" className={classNames({'p-invalid': submitted && !cliente.telefono.trim()})} />
-                                {submitted && !cliente.telefono.trim() && <small className="p-error">El teléfono es requerido.</small>}
+
+                            <div className="grid">
+                                <div className="col field mb-2">
+                                    <label htmlFor="fecha" className="font-bold">Fecha</label>
+                                    <Calendar id="fecha" value={selectedDate} onChange={(e) => setSelectedDate(e.value)} dateFormat="dd/M/yy" readOnlyInput className={classNames({'p-invalid': submitted && !selectedDate})} />
+                                    {submitted && !selectedDate && <small className="p-error">Requerida.</small>}
+                                </div>
+                                <div className="col field mb-2">
+                                    <label htmlFor="hora" className="font-bold">Hora</label>
+                                    <Calendar id="hora" value={hora} onChange={(e) => setHora(e.value)} timeOnly hourFormat="12" className={classNames({'p-invalid': submitted && !hora})} />
+                                    {submitted && !hora && <small className="p-error">Requerida.</small>}
+                                </div>
                             </div>
-                            <div className="field mb-3">
-                                <label htmlFor="fecha" className="font-bold">Fecha de la Cita</label>
-                                <Calendar id="fecha" value={selectedDate} onChange={(e) => setSelectedDate(e.value)} dateFormat="dd/M/yy" readOnlyInput className={classNames({'p-invalid': submitted && !selectedDate})} />
-                                {submitted && !selectedDate && <small className="p-error">La fecha es requerida.</small>}
-                            </div>
-                            <div className="field mb-3">
-                                <label htmlFor="hora" className="font-bold">Hora de la Cita</label>
-                                <Calendar id="hora" value={hora} onChange={(e) => setHora(e.value)} timeOnly hourFormat="12" className={classNames({'p-invalid': submitted && !hora})} />
-                                {submitted && !hora && <small className="p-error">La hora es requerida.</small>}
-                            </div>
-                            <div className="text-center mt-2">
+
+                            <div className="text-center mt-3">
                                 <Button label="Agendar Cita" icon="pi pi-check" onClick={handleAgendarCita} />
                             </div>
                         </div>
                     </Card>
                 </div>
+
+
+
             </div>
-            <Dialog visible={showCitasDialog} style={{ width: '80vw', maxWidth: '1000px' }} header={<div className="flex align-items-center gap-2"><i className="pi pi-calendar" style={{ color: '#10b981' }}></i><span style={{ color: '#333', fontWeight: '600' }}>Citas del {selectedDate?.toLocaleDateString('es-MX')}</span></div>} modal footer={citasDialogFooter} onHide={() => setShowCitasDialog(false)}>
+            <Dialog visible={showCitasDialog} style={{ width: '80vw', maxWidth: '1000px' }} header={<div className="flex align-items-center gap-2"><i className="pi pi-calendar" style={{ color: '#10b981' }}></i><span style={{ color: '#333', fontWeight: '600' }}>Citas del {selectedDate?.toLocaleDateString('es-MX')}</span></div>} modal footer={citasDialogFooter} onHide={() => setShowCitasDialog(false)} closable={false}>
                 <DataTable value={citasDelDia} responsiveLayout="scroll" emptyMessage="No hay citas para este día">
                     <Column field="hora" header="Hora" body={horaBodyTemplate} style={{ minWidth: '100px' }} />
                     <Column field="sucursal.direccion" header="Sucursal" body={sucursalBodyTemplate} style={{ minWidth: '180px' }} />
